@@ -364,7 +364,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                             hpAdjImmune = getState(`showResistance`) ? immune ? ` x 0 IMMUNE` : '' : '',
                             chatHpAdjusted = immune ? `no` : getState(`showDmgFormula`) ? `[[${dmgFinal} [${results[1]}${hpAdjSuccess}${hpAdjResistance}${hpAdjImmune}] +d0]]` : `[[${dmgFinal}]]`,
                             colorSuccess = success ? true : immune ? true : false,
-                            target = char ? char : token;
+                            target = !char ? token : isNPC ? token : char;
                         let oldHP = dmgFinal ? dealDamage(target, dmgFinal) : ''; // ready to build in "revert damage" functionality
                         _.map(players, id => {
                             let controllerName = getObj('player', id).get('_displayname'),
@@ -408,8 +408,9 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                 token = getObj('graphic', parts[2]),
                 dmg = parts[3],
                 charid = token.get('represents'),
-                char = charid ? getObj('character', charid) : '';
-            if (char) {
+                char = charid ? getObj('character', charid) : '',
+                isNPC = !char ? true : getAttrByName(charid, 'npc') == 1 ? true : false;
+            if (!isNPC) {
                 let hp = adjust('hp', charid, dmg, true)
                 toChat(`**Character ${token.get('name')}'s hp reverted to ${hp}.**`, true);
             } else {
@@ -432,8 +433,8 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
             let token = getObj('graphic', tokenID),
                 tokenName = token.get('name'),
                 charID = token.get('represents'),
-                isChar = charID && getObj('character', charID) ? true : false,
-                ID = isChar ? charID : tokenID;
+                isNPC = !charID || !getObj('character', charID) ? true : getAttrByName(charID, 'npc') == 1 ? true : false,
+                ID = !isNPC ? charID : tokenID;
             let successMod = successEffect === 'half' ? .5 : successEffect === 'no' ? 1 : 0,
                 adjustedDmg = dmg * successMod,
                 finalDmg = adv === 'Disadvantage' ? Math.ceil(adjustedDmg) : Math.floor(adjustedDmg);
@@ -449,7 +450,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                 if (successEffect !== 0) {
                     if (oldSuccess) {
                         if (adv === 'Disadvantage' && result < dc) {
-                            newHP = adjust('hp', ID, -finalDmg, isChar);
+                            newHP = adjust('hp', ID, -finalDmg, !isNPC);
                             if (successEffect !== 'full') {
                                 let chatDifference = 'more',
                                     chatHpAdjusted = `[[${finalDmg}]] ${chatDifference}`;
@@ -458,7 +459,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                         }
                     } else {
                         if (adv === 'Advantage' && result >= dc) {
-                            newHP = adjust('hp', ID, +finalDmg, isChar);
+                            newHP = adjust('hp', ID, +finalDmg, !isNPC);
                             if (successEffect !== 'full') {
                                 let chatDifference = 'less',
                                     chatHpAdjusted = `[[${finalDmg}]] ${chatDifference}`;
