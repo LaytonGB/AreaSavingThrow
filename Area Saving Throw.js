@@ -24,19 +24,19 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                 }),
                 macrosArr = [
                     [
-                        'AreaSave', 
+                        'AreaSave',
                         '!ast ?{Saving throw attribute?|Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma} ?{Advantage?|None|Advantage|Disadvantage} ?{Save DC|12} ?{Effect on a success|Half Damage,half|No Damage,no|Full Damage,full} ?{Damage|1d8+3} ?{Damage Type|None,|Acid|Cold|Fire|Force|Lightning|Necrotic|Poison|Psychic|Radiant|Thunder}'
                     ],
                     [
-                        'AreaSaveCustom', 
+                        'AreaSaveCustom',
                         '!ast ?{Saving throw bonus?|5} ?{Advantage?|None|Advantage|Disadvantage} ?{Save DC|12} ?{Effect on a success|Half Damage,half|No Damage,no|Full Damage,full} ?{Damage|1d8+3} ?{Damage Type|None,|Acid|Cold|Fire|Force|Lightning|Necrotic|Poison|Psychic|Radiant|Thunder}'
                     ],
                     [
-                        'AreaSaveConfig', 
+                        'AreaSaveConfig',
                         '!ast config'
                     ],
                     [
-                        'AreaSaveHelp', 
+                        'AreaSaveHelp',
                         '!ast help'
                     ],
                     [
@@ -86,6 +86,8 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                         }
                     } else if (parts[1] === 'revert') {
                         revert(msg);
+                    } else if (parts[1] === 'reroll') {
+                        reroll(msg);
                     } else if (msg.selected && msg.selected[0]) {
                         if (parts[1] === 'resistance' || parts[1] === 'immunity') {
                             addPCAttr(msg);
@@ -114,25 +116,25 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                     `!ast config`,
                     'Shows the config, or if called with more variables, changes settings.',
                     `${code('!ast')} ${code('config')} ${code('setting')} ${code('newValue')}`,
-                    ['!ast<br>config', 'It is recommended to use this command and change settings from the resultant menu.']
+                    ['!ast config', 'It is recommended to use this command and change settings from the resultant menu.']
                 ],
                 [
                     `!ast resistance/immunity`,
                     `Adds resistance or immunity of the specified damage type to the selected token's Character.`,
                     `${code('!ast')} ${code('resistance/immunity')} ${code(`damageType`)}`,
-                    [`resistance/<br>immunity`, `Either ${code('resistance')} or ${code('immunity')}.`],
-                    [`damage<br>Type`, `The type of damage that the PC will become resistant or immune to (eg. ${code('Fire')}).`]
+                    [`resistance/immunity`, `Either ${code('resistance')} or ${code('immunity')}.`],
+                    [`damageType`, `The type of damage that the PC will become resistant or immune to, starting with a capital letter (eg. ${code('Fire')}).`]
                 ],
                 [
                     '!ast',
                     'Rolls the specified save for every selected token, and adjusts their health automatically based on rolls and the input damages.',
                     `${code('!ast')} ${code('attribute/bonus')} ${code('advantage')} ${code('saveDC')} ${code('effectOnSuccess')} ${code('dmgFormula')} ${code('dmgType')}`,
-                    [`attribute/<br>bonus`, `Either an Attribute such as ${code('Strength')} or ${code('Wisdom')}, or a number such as ${code('5')}. If a number is provided, all selected creatures will use that number as their save bonus.`],
+                    [`attribute/bonus`, `Either an Attribute such as ${code('Strength')} or ${code('Wisdom')}, or a number such as ${code('5')}. If a number is provided, all selected creatures will use that number as their save bonus.`],
                     [`advantage`, `${code('None')}, ${code('Advantage')}, or ${code('Disadvantage')}. All selected creatures will roll with the selected option.`],
                     [`saveDC`, `The DC that all selected creatures must meet or exceed to succeed at their save.`],
-                    [`effect<br>On<br>Success`, `${code('Half Damage')}, ${code('No Damage')}, or ${code('No Change')}. If a creature succeeds its save, this is how much of the rolled damage they will take.`],
-                    [`dmg<br>Formula`, `The damage formula to be rolled. This must match the kind of input Roll20 can take with the ${code('/r')} command.`],
-                    [`dmg<br>Type`, `The type of incoming damage. Each creature will be checked for immunity and resistance to this damage, and the damage they take will be adjusted appropriately.`]
+                    [`effectOnSuccess`, `${code('Half Damage')}, ${code('No Damage')}, or ${code('No Change')}. If a creature succeeds its save, this is how much of the rolled damage they will take.`],
+                    [`dmgFormula`, `The damage formula to be rolled. This must match the kind of input Roll20 can take with the ${code('/r')} command.`],
+                    [`dmgType`, `The type of incoming damage. Each creature will be checked for immunity and resistance to this damage, and the damage they take will be adjusted appropriately.`]
                 ]
             ];
             _.each(commandsArr, command => {
@@ -299,10 +301,10 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                     }
 
                     let resAttr = isNPC ? 'npc_resistances' : 'resistances',
-                        resistances = findObjs({_type: 'attribute', _characterid: char.id, name: resAttr})[0] ? getAttrByName(char.id, resAttr).toLowerCase() : '',
+                        resistances = findObjs({ _type: 'attribute', _characterid: char.id, name: resAttr })[0] ? getAttrByName(char.id, resAttr).toLowerCase() : '',
                         resistanceMod = 1,
                         immAttr = isNPC ? 'npc_immunities' : 'immunities',
-                        immunities = findObjs({_type: 'attribute', _characterid: char.id, name: immAttr})[0] ? getAttrByName(char.id, immAttr).toLowerCase() : '',
+                        immunities = findObjs({ _type: 'attribute', _characterid: char.id, name: immAttr })[0] ? getAttrByName(char.id, immAttr).toLowerCase() : '',
                         immune;
                     if (char && dmgType) {
                         if (immunities) {
@@ -354,15 +356,16 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                             chatDmgFormula = getState(`showDmgFormula`) ? ` [${dmgFormula}]` : ``,
                             chatDmgType = dmgType !== 'None' ? ` ${dmgType}` : '',
                             chatSuccess = successMod !== 1 ? `succeeded` : `failed`,
-                            saveResultFormula = ` [${advantage} + ${saveBonus} ${attr.toUpperCase().slice(0,3)}]`,
+                            saveResultFormula = ` [${advantage} + ${saveBonus} ${attr.toUpperCase().slice(0, 3)}]`,
                             chatSaveResult = `${results[0]}${saveResultFormula}`,
                             chatResistance = getState(`showResistance`) ? immune ? ` but was **Immune to ${dmgType}**` : resistanceMod !== 1 ? ` and had **Resistance to ${dmgType}**` : `` : ``,
+                            hpAdjSuccess = successMod !== 1 ? ` x ${successMod} SUCCESS` : '',
                             hpAdjResistance = getState(`showResistance`) ? resistanceMod !== 1 ? ` x ${resistanceMod} RESIST` : '' : '',
                             hpAdjImmune = getState(`showResistance`) ? immune ? ` x 0 IMMUNE` : '' : '',
-                            chatHpAdjusted = immune ? `no` : getState(`showDmgFormula`) ? `[[${dmgFinal} [${results[1]}${hpAdjResistance}${hpAdjImmune}] +d0]]` : `[[${dmgFinal}]]`,
+                            chatHpAdjusted = immune ? `no` : getState(`showDmgFormula`) ? `[[${dmgFinal} [${results[1]}${hpAdjSuccess}${hpAdjResistance}${hpAdjImmune}] +d0]]` : `[[${dmgFinal}]]`,
                             colorSuccess = success ? true : immune ? true : false,
                             target = char ? char : token;
-                        let oldHP = dmgFinal ? dealDamage(target, results[1]) : ''; // ready to build in "revert damage" functionality
+                        let oldHP = dmgFinal ? dealDamage(target, dmgFinal) : ''; // ready to build in "revert damage" functionality
                         _.map(players, id => {
                             let controllerName = getObj('player', id).get('_displayname'),
                                 shortName = controllerName.split(' ', 1)[0];
@@ -381,12 +384,121 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                         return;
 
                         function buildOutput() {
-                            let output = `**${tokenName}** attempted a **${chatDC}${attr}** save, ${chatAdv}**${chatSucEffect} [[${results[1]}${chatDmgFormula} +d0]]${chatDmgType}** damage.<br>**${tokenName} ${chatSuccess}** the save with a roll of [[${chatSaveResult} +d0]]${chatResistance}, so **lost ${chatHpAdjusted} hit points.**<br><div style="text-align: center">[REVERT](!ast revert ${token.id} ${oldHP})</div>`;
+                            let output = `**${tokenName}** attempted a **${chatDC}${attr}** save, ${chatAdv}**${chatSucEffect} [[${results[1]}${chatDmgFormula} +d0]]${chatDmgType}** damage.<br>**${tokenName} ${chatSuccess}** the save with a roll of [[${chatSaveResult} +d0]]${chatResistance}, so **lost ${chatHpAdjusted} hit points.**<br><div style="text-align: center">[REVERT](!ast revert ${token.id} ${results[1]}) [REROLL](!ast reroll ?{Keep the better or worse of the two rolls|Better &#40;Should have had Advantage&#41;,Advantage|Worse &#40;Should have had Disadvantage&#41;,Disadvantage} ${saveBonus} ${token.id} ${results[1]} ${saveDC} ${successEffect} ${success ? 'true' : ''} ${dmgType})</div>`;// &#40; &#41;
                             return output;
                         }
                     });
                 }
             });
+        },
+
+        dealDamage = function (target, dmg) {
+            let currentHP,
+                newHP;
+            if (target.get('_type') === 'character') {
+                newHP = adjust('hp', target.id, -dmg, true);
+            } else {
+                newHP = adjust('hp', target.id, -dmg, false);
+            }
+            return currentHP;
+        },
+
+        revert = function (msg) {
+            let parts = msg.content.split(' '),
+                token = getObj('graphic', parts[2]),
+                dmg = parts[3],
+                charid = token.get('represents'),
+                char = charid ? getObj('character', charid) : '';
+            if (char) {
+                let hp = adjust('hp', charid, dmg, true)
+                toChat(`**Character ${token.get('name')}'s hp reverted to ${hp}.**`, true);
+            } else {
+                let hp = adjust('hp', token.id, dmg, false)
+                toChat(`**Token ${token.get('name')}'s bar${getState('hpBar')} reverted to ${hp}.**`, true);
+            }
+            return;
+        },
+
+        reroll = function (msg) {
+            let parts = msg.content.split(' '),
+                adv = parts[2],
+                bonus = parts[3],
+                tokenID = parts[4],
+                dmg = parts[5],
+                dc = parts[6],
+                successEffect = parts[7],
+                oldSuccess = parts[8] ? true : false,
+                dmgType = parts[9];
+            let token = getObj('graphic', tokenID),
+                tokenName = token.get('name'),
+                charID = token.get('represents'),
+                isChar = charID && getObj('character', charID) ? true : false,
+                ID = isChar ? charID : tokenID;
+            let successMod = successEffect === 'half' ? .5 : successEffect === 'no' ? 1 : 0,
+                adjustedDmg = dmg * successMod,
+                finalDmg = adv === 'Disadvantage' ? Math.ceil(adjustedDmg) : Math.floor(adjustedDmg);
+            let chatDC = getState(`showDC`) ? ` DC ${dc}` : ``,
+                chatSucEffect = successEffect === 'half' ? 'to half' : successEffect === 'no' ? 'to nullify' : 'against',
+                chatDmgType = dmgType !== 'None' ? ` ${dmgType}` : '',
+                chatDmgApply = '';
+            let rollResult = roll(`d20+${bonus}`),
+                newHP;
+            rollResult.then(result => {
+                let success = result >= dc ? true : false,
+                    chatSuccess = success ? `succeeded` : `failed`;
+                if (successEffect !== 0) {
+                    if (oldSuccess) {
+                        if (adv === 'Disadvantage' && result < dc) {
+                            newHP = adjust('hp', ID, -finalDmg, isChar);
+                            if (successEffect !== 'full') {
+                                let chatDifference = 'more',
+                                    chatHpAdjusted = `[[${finalDmg}]] ${chatDifference}`;
+                                chatDmgApply = ` and, so **lost ${chatHpAdjusted} hit points`;
+                            }
+                        }
+                    } else {
+                        if (adv === 'Advantage' && result >= dc) {
+                            newHP = adjust('hp', ID, +finalDmg, isChar);
+                            if (successEffect !== 'full') {
+                                let chatDifference = 'less',
+                                    chatHpAdjusted = `[[${finalDmg}]] ${chatDifference}`;
+                                chatDmgApply = ` and, so **lost ${chatHpAdjusted} hit points`;
+                            }
+                        }
+                    }
+                }
+                buildOutput();
+                return;
+
+                function buildOutput() {
+                    toChat(`**${tokenName}** re-rolled the**${chatDC}** saving throw as their **${adv}, ${chatSucEffect} [[${dmg}]]${chatDmgType}** damage.<br>**${tokenName} ${chatSuccess}** the re-roll with a result of [[${result} [d20+${bonus}] +d0]]${chatDmgApply}.**`, success, playerName);
+                    return;
+                };
+            });
+        },
+
+        adjust = function (attrName, targetID, adjustment, isChar, targetName) {
+            if (isChar) {
+                let attr = findObjs({ _type: 'attribute', _characterid: targetID, name: attrName })[0],
+                    currentValue = getAttrByName(targetID, attrName),
+                    maxValue = getAttrByName(targetID, attrName, 'max'),
+                    newValue = currentValue && !isNaN(currentValue) ? +currentValue + +adjustment : maxValue && !isNaN(maxValue) ? +maxValue + +adjustment : false;
+                if (newValue) {
+                    attr.setWithWorker({ current: newValue });
+                } else {
+                    error(`Attribute Adjustment could not calculate newValue.`, 15);
+                }
+                if (targetName) { toChat(`**Character ${targetName}'s ${attrName} set to ${newValue}.**`, true, playerName) }
+                return newValue;
+            } else {
+                let token = getObj('graphic', targetID),
+                    currentValue = token.get(`bar${getState('hpBar')}_value`),
+                    maxValue = token.get(`bar${getState('hpBar')}_max`),
+                    newValue = currentValue && !isNaN(currentValue) ? +currentValue + +adjustment : maxValue && !isNaN(maxValue) ? +maxValue + +adjustment : false;
+                token.set(`bar${getState('hpBar')}_value`, newValue);
+                if (targetName) { toChat(`**Token ${targetName}'s ${attrName} bar set to ${newValue}.**`, true, playerName) }
+                return newValue;
+            }
         },
 
         addPCAttr = function (msg) {
@@ -399,9 +511,9 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                         charid = token.get('represents'),
                         char = charid ? getObj('character', charid) : '';
                     if (char) {
-                        let attr = findObjs({_type: 'attribute', _characterid: charid, name: parts[1].toLowerCase()})[0];
+                        let attr = findObjs({ _type: 'attribute', _characterid: charid, name: parts[1].toLowerCase() })[0];
                         if (attr) {
-                            attr.set('value', getAttrByName(charid, parts[1])+`, ${parts[2]}`);
+                            attr.set('value', getAttrByName(charid, parts[1]) + `, ${parts[2]}`);
                             toChat(`${parts[1]} to ${parts[2]} added for ${char.get('name')}!`, true, playerName);
                         } else {
                             createObj('attribute', {
@@ -424,40 +536,6 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
             }
         },
 
-        dealDamage = function (target, dmg) {
-            let currentHP,
-                newHP;
-            if (target.get('_type') === 'character') {
-                currentHP = getAttrByName(target.id, 'hp');
-                newHP = currentHP - dmg;
-                let attr = findObjs({ _type: 'attribute', _characterid: target.id, name: 'hp' })[0];
-                attr.setWithWorker({ current: newHP });
-            } else {
-                currentHP = target.get(`bar${getState('hpBar')}_value`);
-                newHP = currentHP - dmg;
-                target.set(`bar${getState('hpBar')}_value`);
-            }
-            return currentHP;
-        },
-
-        revert = function (msg) {
-            let parts = msg.content.split(' '),
-                token = getObj('graphic', parts[2]),
-                charid = token.get('represents'),
-                char = charid ? getObj('character', charid) : '';
-            if (char) {
-                let attr = findObjs({ _type: 'attribute', _characterid: charid, name: 'hp' })[0],
-                    hp = !isNaN(parts[3]) ? parts[3] : getAttrByName(charid, 'hp', 'max');
-                attr.setWithWorker({ current: hp });
-                toChat(`**Character ${token.get('name')}'s hp reverted to ${hp}.**`, true);
-            } else {
-                let hp = !isNaN(parts[3]) ? parts[3] : token.get(`bar${getState('hpBar')}_max`);
-                token.set({ current: hp });
-                toChat(`**Token ${token.get('name')}'s bar${getState('hpBar')} reverted to ${hp}.**`, true);
-            }
-            return;
-        },
-
         getState = function (value) {
             return state[`${stateName}_${value}`];
         },
@@ -469,7 +547,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                 });
             });
         },
-        
+
         code = function (snippet) {
             return `<span style="background-color: rgba(0, 0, 0, 0.5); color: White; padding: 2px; border-radius: 3px;">${snippet}</span>`;
         },
