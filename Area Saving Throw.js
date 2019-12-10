@@ -114,25 +114,25 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                     `!ast config`,
                     'Shows the config, or if called with more variables, changes settings.',
                     `${code('!ast')} ${code('config')} ${code('setting')} ${code('newValue')}`,
-                    ['!ast config', 'It is recommended to use this command and change settings from the resultant menu.']
+                    ['!ast<br>config', 'It is recommended to use this command and change settings from the resultant menu.']
                 ],
                 [
                     `!ast resistance/immunity`,
                     `Adds resistance or immunity of the specified damage type to the selected token's Character.`,
                     `${code('!ast')} ${code('resistance/immunity')} ${code(`damageType`)}`,
-                    [`resistance/immunity`, `Either ${code('resistance')} or ${code('immunity')}.`],
-                    [`damageType`, `The type of damage that the PC will become resistant or immune to, starting with a capital letter (eg. ${code('Fire')}).`]
+                    [`resistance/<br>immunity`, `Either ${code('resistance')} or ${code('immunity')}.`],
+                    [`damage<br>Type`, `The type of damage that the PC will become resistant or immune to (eg. ${code('Fire')}).`]
                 ],
                 [
                     '!ast',
                     'Rolls the specified save for every selected token, and adjusts their health automatically based on rolls and the input damages.',
                     `${code('!ast')} ${code('attribute/bonus')} ${code('advantage')} ${code('saveDC')} ${code('effectOnSuccess')} ${code('dmgFormula')} ${code('dmgType')}`,
-                    [`attribute/bonus`, `Either an Attribute such as ${code('Strength')} or ${code('Wisdom')}, or a number such as ${code('5')}. If a number is provided, all selected creatures will use that number as their save bonus.`],
+                    [`attribute/<br>bonus`, `Either an Attribute such as ${code('Strength')} or ${code('Wisdom')}, or a number such as ${code('5')}. If a number is provided, all selected creatures will use that number as their save bonus.`],
                     [`advantage`, `${code('None')}, ${code('Advantage')}, or ${code('Disadvantage')}. All selected creatures will roll with the selected option.`],
                     [`saveDC`, `The DC that all selected creatures must meet or exceed to succeed at their save.`],
-                    [`effectOnSuccess`, `${code('Half Damage')}, ${code('No Damage')}, or ${code('No Change')}. If a creature succeeds its save, this is how much of the rolled damage they will take.`],
-                    [`dmgFormula`, `The damage formula to be rolled. This must match the kind of input Roll20 can take with the ${code('/r')} command.`],
-                    [`dmgType`, `The type of incoming damage. Each creature will be checked for immunity and resistance to this damage, and the damage they take will be adjusted appropriately.`]
+                    [`effect<br>On<br>Success`, `${code('Half Damage')}, ${code('No Damage')}, or ${code('No Change')}. If a creature succeeds its save, this is how much of the rolled damage they will take.`],
+                    [`dmg<br>Formula`, `The damage formula to be rolled. This must match the kind of input Roll20 can take with the ${code('/r')} command.`],
+                    [`dmg<br>Type`, `The type of incoming damage. Each creature will be checked for immunity and resistance to this damage, and the damage they take will be adjusted appropriately.`]
                 ]
             ];
             _.each(commandsArr, command => {
