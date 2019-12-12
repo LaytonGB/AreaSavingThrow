@@ -89,7 +89,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                     } else if (parts[1] === 'reroll') {
                         reroll(msg);
                     } else if (msg.selected && msg.selected[0]) {
-                        if (parts[1] === 'resistance' || parts[1] === 'immunity') {
+                        if (parts[1] === 'Resistance' || parts[1] === 'Immunity') {
                             addPCAttr(msg);
                         } else {
                             areaSavingThrow(msg);
@@ -505,22 +505,36 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
             let parts = msg.content.split(' '),
                 dmgTypes = ['Acid', 'Cold', 'Fire', 'Force', 'Lightning', 'Necrotic', 'Poison', 'Psychic', 'Radiant', 'Thunder'],
                 resTypes = ['Resistance', 'Immunity'];
-            if (dmgTypes.includes(parts[2]) && resTypes.includes(parts[1])) {
+            if (resTypes.includes(parts[1]) && ( dmgTypes.includes(parts[2]) || parts[2] === 'None' )) {
                 _.each(msg.selected, obj => {
                     let token = getObj(obj._type, obj._id),
+                        tokenName = token.get('name'),
                         charid = token.get('represents'),
-                        char = charid ? getObj('character', charid) : '';
+                        char = charid ? getObj('character', charid) : '',
+                        attrName = parts[1] === 'Resistance' ? 'resistances' : 'immunities';
                     if (char) {
-                        let attr = findObjs({ _type: 'attribute', _characterid: charid, name: parts[1].toLowerCase() })[0];
-                        if (attr) {
-                            attr.set('value', getAttrByName(charid, parts[1]) + `, ${parts[2]}`);
-                            toChat(`${parts[1]} to ${parts[2]} added for ${char.get('name')}!`, true, playerName);
+                        let attr = findObjs({ _type: 'attribute', _characterid: charid, name: attrName })[0];
+                        if (parts[2] === 'None') {
+                            if (attr) {
+                                attr.remove();
+                                toChat(`**Removed all ${parts[1] === 'Resistance' ? 'Resistances' : 'Immunities'} from ${tokenName}.**`, true)
+                            } else {
+                                error(`Could not find any ${parts[1] === 'Resistance' ? 'Resistances' : 'Immunities'} for '${token}'.`, 16);
+                                return;
+                            }
                         } else {
-                            createObj('attribute', {
-                                _characterid: charid,
-                                name: parts[1].toLowerCase(),
-                                value: parts[2]
-                            });
+                            if (attr) {
+                                attr.setWithWorker('current', getAttrByName(charid, attrName) + `, ${parts[2]}`);
+                                toChat(`**Granted ${tokenName} ${parts[1]} to ${parts[2]}.**`, true);
+                            } else {
+                                createObj('attribute', {
+                                    _characterid: charid,
+                                    name: attrName,
+                                    current: parts[2]
+                                });
+                            }
+                            toChat(`**Granted ${tokenName} ${parts[1]} to ${parts[2]}.**`, true);
+                            return;
                         }
                     } else {
                         error(`Could not find a character sheet for token '${token}'. Are you sure the token represents a sheet?`, 13);
@@ -531,7 +545,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                 error(`This API can only grant characters 'resistance' or 'immunity'. You entered '${parts[1]}'.`, 14);
                 return;
             } else {
-                error(`Could not add a ${parts[1]} to ${parts[2]} because no such damage type exists.`, 12);
+                error(`Could not add ${parts[1]} to '${parts[2]}' because no such damage type exists.`, 12);
                 return;
             }
         },
