@@ -200,7 +200,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
         areaSavingThrow = function (msg) {
             let parts = msg.content.split(' ');
 
-            let attr,
+            let attr = 'SET',
                 saveBonus;
             if (parseInt(parts[1])) {
                 saveBonus = parts[1];
@@ -365,7 +365,7 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                             chatHpAdjusted = immune ? `no` : getState(`showDmgFormula`) ? `[[${dmgFinal} [${results[1]}${hpAdjSuccess}${hpAdjResistance}${hpAdjImmune}] +d0]]` : `[[${dmgFinal}]]`,
                             colorSuccess = success ? true : immune ? true : false,
                             target = !char ? token : isNPC ? token : char;
-                        let oldHP = dmgFinal ? dealDamage(target, dmgFinal) : ''; // ready to build in "revert damage" functionality
+                        dealDamage(target, dmgFinal);
                         _.map(players, id => {
                             let controllerName = getObj('player', id).get('_displayname'),
                                 shortName = controllerName.split(' ', 1)[0];
@@ -393,12 +393,11 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
         },
 
         dealDamage = function (target, dmg) {
-            let currentHP,
-                newHP;
+            let currentHP;
             if (target.get('_type') === 'character') {
-                newHP = adjust('hp', target.id, -dmg, true);
+                adjust('hp', target.id, -dmg, true);
             } else {
-                newHP = adjust('hp', target.id, -dmg, false);
+                adjust('hp', target.id, -dmg, false);
             }
             return currentHP;
         },
@@ -411,10 +410,10 @@ var AreaSavingThrow = AreaSavingThrow || (function () {
                 char = charid ? getObj('character', charid) : '',
                 isNPC = !char ? true : getAttrByName(charid, 'npc') == 1 ? true : false;
             if (!isNPC) {
-                let hp = adjust('hp', charid, dmg, true)
+                let hp = adjust('hp', charid, dmg, true);
                 toChat(`**Character ${token.get('name')}'s hp reverted to ${hp}.**`, true);
             } else {
-                let hp = adjust('hp', token.id, dmg, false)
+                let hp = adjust('hp', token.id, dmg, false);
                 toChat(`**Token ${token.get('name')}'s bar${getState('hpBar')} reverted to ${hp}.**`, true);
             }
             return;
